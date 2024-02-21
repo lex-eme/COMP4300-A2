@@ -1,4 +1,7 @@
 #pragma once
+
+#include <iostream>
+
 struct Vec2
 {
 	float x = 0.0f;
@@ -16,11 +19,13 @@ struct Vec2
 	Vec2 operator*(const float val) const;
 	Vec2 operator/(const float val) const;
 
-	void operator+=(const Vec2& rhs);
-	void operator-=(const Vec2& rhs);
-	void operator*=(const float val);
-	void operator/=(const float val);
+	Vec2& operator+=(const Vec2& rhs);
+	Vec2& operator-=(const Vec2& rhs);
+	Vec2& operator*=(const float val);
+	Vec2& operator/=(const float val);
 
 	float dist(const Vec2& rhs) const;
+
+	friend std::ostream& operator<<(std::ostream& os, const Vec2& dt);
 };
 

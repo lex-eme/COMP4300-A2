@@ -2,67 +2,80 @@
 
 #include <math.h>
 
-Vec2::Vec2()
-{
-}
+Vec2::Vec2() {}
 
 Vec2::Vec2(float xin, float yin)
-	: x(xin), y(yin)
-{
-}
+	: x(xin), y(yin) {}
 
 Vec2::Vec2(int xin, int yin)
-	: x((float)xin), y((float)yin)
-{
-}
+	: x((float)xin), y((float)yin) {}
 
 bool Vec2::operator==(const Vec2& rhs) const
 {
-	return false;
+	return x == rhs.x && y == rhs.y;
 }
 
 bool Vec2::operator!=(const Vec2& rhs) const
 {
-	return false;
+	return x != rhs.x || y != rhs.y;
 }
 
 Vec2 Vec2::operator+(const Vec2& rhs) const
 {
-	return Vec2();
+	return Vec2(x + rhs.x, y + rhs.y);
 }
 
 Vec2 Vec2::operator-(const Vec2& rhs) const
 {
-	return Vec2();
+	return Vec2(x - rhs.x, y - rhs.y);
 }
 
 Vec2 Vec2::operator*(const float val) const
 {
-	return Vec2();
+	return Vec2(x * val, y * val);
 }
 
 Vec2 Vec2::operator/(const float val) const
 {
-	return Vec2();
+	return Vec2(x / val, y /val);
 }
 
-void Vec2::operator+=(const Vec2& rhs)
+Vec2& Vec2::operator+=(const Vec2& rhs)
 {
+	x += rhs.x;
+	y += rhs.y;
+	return *this;
 }
 
-void Vec2::operator-=(const Vec2& rhs)
+Vec2& Vec2::operator-=(const Vec2& rhs)
 {
+	x -= rhs.x;
+	y -= rhs.y;
+	return *this;
 }
 
-void Vec2::operator*=(const float val)
+Vec2& Vec2::operator*=(const float val)
 {
+	x *= val;
+	y *= val;
+	return *this;
 }
 
-void Vec2::operator/=(const float val)
+Vec2& Vec2::operator/=(const float val)
 {
+	x /= val;
+	y /= val;
+	return *this;
 }
 
 float Vec2::dist(const Vec2& rhs) const
 {
-	return 0.0f;
+	float dx = rhs.x - x;
+	float dy = rhs.y - y;
+	return sqrtf(dx * dx + dy * dy);
+}
+
+std::ostream& operator<<(std::ostream& os, const Vec2& dt) {
+	os << '(' << dt.x << ',' << dt.y << ')';
+	return os;
 }
