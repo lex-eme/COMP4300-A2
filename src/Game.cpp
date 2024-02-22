@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include "Game.h"
 
@@ -38,27 +39,60 @@ void Game::run()
 
 void Game::init(const std::string& path)
 {
-	// TODO: read in config file here
-	//		use the premade PlayerConfig, EnemyConfig, BulletConfig variables
-	m_Resolution.x = 1280.0f;
-	m_Resolution.y = 720.0f;
+	std::ifstream fin("src/config.txt");
+	std::string temp;
+
+	while (fin >> temp)
+	{
+		if (temp == "Window")
+		{
+			fin >> m_Resolution.x >> m_Resolution.y;
+		}
+		else if (temp == "Fonts")
+		{
+			std::string path;
+			unsigned int charSize = 0;
+			unsigned char r = 0, g = 0, b = 0;
+
+			fin >> path >> charSize >> r >> g >> b;
+
+			if (!m_Font.loadFromFile(path))
+			{
+				std::cerr << "Could not load font." << std::endl;
+				exit(-1);
+			}
+
+			m_Text.setCharacterSize(charSize);
+			m_Text.setFillColor(sf::Color(r, g, b));
+		}
+		else if (temp == "Player")
+		{
+			fin >> m_PlayerConfig.SR >> m_PlayerConfig.CR >> m_PlayerConfig.S
+				>> m_PlayerConfig.FR >> m_PlayerConfig.FG >> m_PlayerConfig.FB
+				>> m_PlayerConfig.OR >> m_PlayerConfig.OG >> m_PlayerConfig.OB
+				>> m_PlayerConfig.OT >> m_PlayerConfig.V;
+		}
+		else if (temp == "Enemy")
+		{
+			fin >> m_EnemyConfig.SR >> m_EnemyConfig.CR >> m_EnemyConfig.SMIN
+				>> m_EnemyConfig.SMAX >> m_EnemyConfig.OR >> m_EnemyConfig.OG
+				>> m_EnemyConfig.OB >> m_EnemyConfig.OT >> m_EnemyConfig.VMIN
+				>> m_EnemyConfig.VMAX >> m_EnemyConfig.L >> m_EnemyConfig.SI;
+		}
+		else if (temp == "Bullet")
+		{
+			fin >> m_BulletConfig.SR >> m_BulletConfig.CR >> m_BulletConfig.S
+				>> m_BulletConfig.FR >> m_BulletConfig.FG >> m_BulletConfig.FB
+				>> m_BulletConfig.OR >> m_BulletConfig.OG >> m_BulletConfig.OB
+				>> m_BulletConfig.OT >> m_BulletConfig.V >> m_BulletConfig.L;
+		}
+	}
 
 	m_Window.create(sf::VideoMode(m_Resolution.x, m_Resolution.y), "Assignment 2");
 	m_Window.setVerticalSyncEnabled(true);
 
 	ImGui::SFML::Init(m_Window);
 
-	m_EnemyConfig.SI = 360;
-	m_EnemyConfig.SR = 32;
-	m_EnemyConfig.CR = 32;
-	m_EnemyConfig.VMIN = 3;
-	m_EnemyConfig.VMAX = 8;
-	m_EnemyConfig.SMIN = 3;
-	m_EnemyConfig.SMAX = 5;
-	m_EnemyConfig.OR = 255;
-	m_EnemyConfig.OG = 255;
-	m_EnemyConfig.OB = 255;
-	m_PlayerConfig.S = 3.0f;
 	srand(time(nullptr));
 
 	spawnPlayer();
