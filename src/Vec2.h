@@ -25,6 +25,10 @@ struct Vec2
 	Vec2& operator/=(const float val);
 
 	float dist(const Vec2& rhs) const;
+	float mag() const;
+	Vec2& normalize();
+	Vec2& setMag(float len);
+	Vec2& rotate(float theta);
 
 	friend std::ostream& operator<<(std::ostream& os, const Vec2& dt);
 };

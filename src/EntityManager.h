@@ -14,8 +14,6 @@ class EntityManager
 	EntityMap	m_EntityMap;
 	size_t		m_TotalEntities = 0;
 
-	void removeDeadEntities(EntityVec& vec);
-
 public:
 	EntityManager();
 
@@ -27,5 +25,7 @@ public:
 	const EntityVec& getEntities(const std::string& tag);
 	const std::map<std::string, EntityVec>& getEntityMap();
 
+private:
+	void removeDeadEntities(EntityVec& vec);
 };
 

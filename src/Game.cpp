@@ -21,10 +21,10 @@ void Game::run()
 		// required update call to imgui
 		ImGui::SFML::Update(m_Window, m_DeltaClock.restart());
 
+		sUserInput();
 		sEnemySpawner();
 		sMovement();
 		sCollision();
-		sUserInput();
 		sGUI();
 		sRender();
 
@@ -40,47 +40,73 @@ void Game::init(const std::string& path)
 {
 	// TODO: read in config file here
 	//		use the premade PlayerConfig, EnemyConfig, BulletConfig variables
+	m_Resolution.x = 1280.0f;
+	m_Resolution.y = 720.0f;
 
-	// set up default window parameters
-	m_Window.create(sf::VideoMode(1280, 720), "Assignment 2");
+	m_Window.create(sf::VideoMode(m_Resolution.x, m_Resolution.y), "Assignment 2");
 	m_Window.setVerticalSyncEnabled(true);
 
 	ImGui::SFML::Init(m_Window);
+
+	m_EnemyConfig.SI = 360;
+	m_EnemyConfig.SR = 32;
+	m_EnemyConfig.CR = 32;
+	m_EnemyConfig.VMIN = 3;
+	m_EnemyConfig.VMAX = 8;
+	m_EnemyConfig.SMIN = 3;
+	m_EnemyConfig.SMAX = 5;
+	m_EnemyConfig.OR = 255;
+	m_EnemyConfig.OG = 255;
+	m_EnemyConfig.OB = 255;
+	m_PlayerConfig.S = 3.0f;
+	srand(time(nullptr));
 
 	spawnPlayer();
 }
 
 void Game::setPause(bool paused)
 {
-	// TODO
+	m_Paused = paused;
 }
 
 void Game::spawnPlayer()
 {
-	// TOFO: Finish adding all properties of the player with the correct values from th
+	// TODO: Finish adding all properties of the player with the correct values from th
 
-	// We create every entity by calling EntityManager.addEntity(tag)
-	// This returns a std::shared_ptr<Entity>, so we use 'auto' to save typing
 	auto entity = m_Entities.addEntity("player");
-
-	// Give this entity a Transform so it spawns at (200,200) with velocity (1,1) and angle 0
-	entity->cTransform = std::make_shared<CTransform>(Vec2(200, 200), Vec2(1, 1), 0.0f);
-
-	// The entity's shape will have radius 32, 8 sides, dark grey fill, and red outiline of thickness 4
+	entity->cTransform = std::make_shared<CTransform>(Vec2(200, 200), Vec2(0, 0), 0.0f);
 	entity->cShape = std::make_shared<CShape>(32.0f, 8, sf::Color(10, 10, 10), sf::Color(255, 0, 0), 4.0f);
-
-	// Add an input component to the player so that we can use inputs
 	entity->cInput = std::make_shared<CInput>();
+	entity->cCollision = std::make_shared<CCollision>(32.0f);
 
 	// Since we want this Entity to be our player, set ou Game's player variable to be this entity
 	// This goes slightly against the EntityManger paradigm, but we use the player so much it's worth it
-	m_Player = entity; // not added to the EntityManger yet!
+	m_Player = entity;
 }
 
 void Game::spawnEnemy()
 {
 	// TODO: make sure the enemy is spawned properly with th m_EnemyConfig valirables
 	//		the enemy must be spawned completely within the bounds of the window
+	EnemyConfig& conf = m_EnemyConfig;
+	float posX = (rand() % ((int)m_Resolution.x - 2 * conf.CR)) + conf.CR;
+	float posY = (rand() % ((int)m_Resolution.y - 2 * conf.CR)) + conf.CR;
+	int vertices = (rand() % (1 + conf.VMAX - conf.VMIN)) + conf.VMIN;
+
+	float speed = (rand() % (1 + conf.SMAX - conf.SMIN)) + conf.SMIN;
+	float angle = (rand() % 360);
+	Vec2 velocity(1, 0);
+	velocity.rotate(angle);
+	velocity *= speed;
+
+	sf::Uint8 r = rand() % 255;
+	sf::Uint8 g = rand() % 255;
+	sf::Uint8 b = rand() % 255;
+
+	auto entity = m_Entities.addEntity("enemy");
+	entity->cTransform = std::make_shared<CTransform>(Vec2(posX, posY), velocity, 0.0f);
+	entity->cShape = std::make_shared<CShape>(conf.SR, vertices, sf::Color(r, g, b), sf::Color(conf.OR, conf.OG, conf.OB), 2.0f);
+	entity->cCollision = std::make_shared<CCollision>(conf.CR);
 
 	// record when the most recent enemy was spawned
 	m_lastEnemySpawnTime = m_CurrentFrame;
@@ -113,9 +139,21 @@ void Game::sMovement()
 	// TODO: implement all entity movement in this function
 	//		you should read the m_Player->cInput component to determine if the player is moving
 
-	// Sample movement
-	m_Player->cTransform->pos.x += m_Player->cTransform->velocity.x;
-	m_Player->cTransform->pos.y += m_Player->cTransform->velocity.y;
+	CInput input = *m_Player->cInput;
+	Vec2 playerVel(0, 0);
+	if (input.up)		playerVel -= Vec2(0, 1);
+	if (input.down)		playerVel -= Vec2(0, -1);
+	if (input.right)	playerVel += Vec2(1, 0);
+	if (input.left)		playerVel += Vec2(-1, 0);
+	playerVel.setMag(m_PlayerConfig.S);
+	m_Player->cTransform->velocity = playerVel;
+
+	for (auto e : m_Entities.getEntities())
+	{
+		if (e->cShape)
+			e->cTransform->velocity.rotate(0.1f);
+			e->cTransform->pos += e->cTransform->velocity;
+	}
 }
 
 void Game::sLifespan()
@@ -131,19 +169,67 @@ void Game::sLifespan()
 	//			destroy the entity
 }
 
+void Game::entitiesCheckBounds(const std::string& tag)
+{
+	for (auto e : m_Entities.getEntities(tag))
+	{
+		Vec2& pos = e->cTransform->pos;
+		Vec2& vel = e->cTransform->velocity;
+		float radius = e->cCollision->radius;
+
+		if (pos.y - radius < 0.0f)
+		{
+			vel.y *= -1.0f;
+			pos.y = radius;
+		}
+		else if (pos.y + radius > m_Resolution.y)
+		{
+			vel.y *= -1.0f;
+			pos.y = m_Resolution.y - radius;
+		}
+
+		if (pos.x - radius < 0.0f)
+		{
+			vel.x *= -1.0f;
+			pos.x = radius;
+		}
+		else if (pos.x + radius > m_Resolution.x)
+		{
+			vel.x *= -1.0f;
+			pos.x = m_Resolution.x - radius;
+		}
+	}
+}
+
 void Game::sCollision()
 {
-	// TODO: implement all proper collisions between entities
-	//		be sure to use the collision radius, NOT the shape raidus
+	entitiesCheckBounds("enemy");
+	entitiesCheckBounds("small enemy");
+
+	Vec2& pos = m_Player->cTransform->pos;
+	float radius = m_Player->cCollision->radius;
+
+	if (pos.y - radius < 0.0f)
+		pos.y = radius;
+	if (pos.y + radius > m_Resolution.y)
+		pos.y = m_Resolution.y - radius;
+	if (pos.x - radius < 0.0f)
+		pos.x = radius;
+	if (pos.x + radius > m_Resolution.x)
+		pos.x = m_Resolution.x - radius;
 }
 
 void Game::sEnemySpawner()
 {
 	// TODO: code whichi implements enemy spawning should go here
+	int time = m_CurrentFrame - m_lastEnemySpawnTime;
+	if (time > m_EnemyConfig.SI)
+		spawnEnemy();
 }
 
 void Game::sGUI()
 {
+	//ImGui::ShowDemoWindow();
 	ImGui::Begin("Geometry Wars");
 
 	ImGui::Text("Stuff goes here!");
@@ -153,15 +239,18 @@ void Game::sGUI()
 
 void Game::sRender()
 {
-	// TODO: change the code below to draw ALL of the entities
-	//		sample drawing of the player Entity that we have created
 	m_Window.clear();
 
-	m_Player->cShape->circle.setPosition(m_Player->cTransform->pos.x, m_Player->cTransform->pos.y);
-	m_Player->cTransform->angle += 1.0f;
-	m_Player->cShape->circle.setRotation(m_Player->cTransform->angle);
-
-	m_Window.draw(m_Player->cShape->circle);
+	for (auto e : m_Entities.getEntities())
+	{
+		if (e->cShape)
+		{
+			e->cShape->circle.setPosition(e->cTransform->pos.x, e->cTransform->pos.y);
+			e->cTransform->angle += 1.0f;
+			e->cShape->circle.setRotation(e->cTransform->angle);
+			m_Window.draw(e->cShape->circle);
+		}
+	}
 
 	ImGui::SFML::Render(m_Window);
 	m_Window.display();
@@ -183,24 +272,19 @@ void Game::sUserInput()
 
 		if (event.type == sf::Event::KeyPressed)
 		{
-			std::cout << "Key pressed with code = " << event.key.code << std::endl;
+			//std::cout << "Key pressed with code = " << event.key.code << std::endl;
 
 			switch (event.key.code)
 			{
 			case sf::Keyboard::Escape:
 				m_Running = false;
 				break;
-			case sf::Keyboard::Z:
-				std::cout << "Z Key Pressed" << std::endl;
+			case sf::Keyboard::P:
+				setPause(!m_Paused);
 				break;
 			default:
 				break;
 			}
-		}
-
-		if (event.type == sf::Event::KeyReleased)
-		{
-			std::cout << "Key released with code = " << event.key.code << std::endl;
 		}
 
 		if (event.type == sf::Event::MouseButtonPressed)
@@ -221,4 +305,10 @@ void Game::sUserInput()
 			}
 		}
 	}
+
+	auto input = m_Player->cInput;
+	input->up = sf::Keyboard::isKeyPressed(sf::Keyboard::Z);
+	input->down = sf::Keyboard::isKeyPressed(sf::Keyboard::S);
+	input->left = sf::Keyboard::isKeyPressed(sf::Keyboard::Q);
+	input->right = sf::Keyboard::isKeyPressed(sf::Keyboard::D);
 }
