@@ -88,11 +88,12 @@ void Game::init(const std::string& path)
 		}
 	}
 
-	m_Window.create(sf::VideoMode(m_Resolution.x, m_Resolution.y), "Assignment 2");
+	m_Window.create(sf::VideoMode((int)m_Resolution.x, (int)m_Resolution.y), "Assignment 2");
 	m_Window.setVerticalSyncEnabled(true);
 
 	ImGui::SFML::Init(m_Window);
 
+	time_t x;
 	srand(time(nullptr));
 
 	spawnPlayer();
@@ -123,12 +124,12 @@ void Game::spawnEnemy()
 	// TODO: make sure the enemy is spawned properly with th m_EnemyConfig valirables
 	//		the enemy must be spawned completely within the bounds of the window
 	EnemyConfig& conf = m_EnemyConfig;
-	float posX = (rand() % ((int)m_Resolution.x - 2 * conf.CR)) + conf.CR;
-	float posY = (rand() % ((int)m_Resolution.y - 2 * conf.CR)) + conf.CR;
+	int posX = (rand() % ((int)m_Resolution.x - 2 * conf.CR)) + conf.CR;
+	int posY = (rand() % ((int)m_Resolution.y - 2 * conf.CR)) + conf.CR;
 	int vertices = (rand() % (1 + conf.VMAX - conf.VMIN)) + conf.VMIN;
 
-	float speed = (rand() % (1 + conf.SMAX - conf.SMIN)) + conf.SMIN;
-	float angle = (rand() % 360);
+	float speed = (float)(rand() % (1 + conf.SMAX - conf.SMIN)) + conf.SMIN;
+	float angle = (float)(rand() % 360);
 	Vec2 velocity(1, 0);
 	velocity.rotate(angle);
 	velocity *= speed;
@@ -139,8 +140,8 @@ void Game::spawnEnemy()
 
 	auto entity = m_Entities.addEntity("enemy");
 	entity->cTransform = std::make_shared<CTransform>(Vec2(posX, posY), velocity, 0.0f);
-	entity->cShape = std::make_shared<CShape>(conf.SR, vertices, sf::Color(r, g, b), sf::Color(conf.OR, conf.OG, conf.OB), 2.0f);
-	entity->cCollision = std::make_shared<CCollision>(conf.CR);
+	entity->cShape = std::make_shared<CShape>((float)conf.SR, vertices, sf::Color(r, g, b), sf::Color(conf.OR, conf.OG, conf.OB), (float)conf.OT);
+	entity->cCollision = std::make_shared<CCollision>((float)conf.CR);
 
 	// record when the most recent enemy was spawned
 	m_lastEnemySpawnTime = m_CurrentFrame;
@@ -176,7 +177,7 @@ void Game::sMovement()
 	CInput input = *m_Player->cInput;
 	Vec2 playerVel(0, 0);
 	if (input.up)		playerVel -= Vec2(0, 1);
-	if (input.down)		playerVel -= Vec2(0, -1);
+	if (input.down)		playerVel += Vec2(0, 1);
 	if (input.right)	playerVel += Vec2(1, 0);
 	if (input.left)		playerVel += Vec2(-1, 0);
 	playerVel.setMag(m_PlayerConfig.S);
@@ -185,7 +186,6 @@ void Game::sMovement()
 	for (auto e : m_Entities.getEntities())
 	{
 		if (e->cShape)
-			e->cTransform->velocity.rotate(0.1f);
 			e->cTransform->pos += e->cTransform->velocity;
 	}
 }
