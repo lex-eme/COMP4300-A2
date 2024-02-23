@@ -39,7 +39,7 @@ private:
 	void spawnPlayer();
 	void spawnEnemy();
 	void spawnSmallEnemies(std::shared_ptr<Entity> e);
-	void spawnBullet(std::shared_ptr<Entity> entity, const Vec2& taget);
+	void spawnBullet(std::shared_ptr<Entity> entity, const Vec2& target);
 	void spawnSpecialWeapon(std::shared_ptr<Entity> entity);
 
 	void sMovement();
@@ -51,5 +51,6 @@ private:
 	void sUserInput();
 
 	void entitiesCheckBounds(const std::string& tag);
+	void deleteEnemy(std::shared_ptr<Entity> e);
 };
 

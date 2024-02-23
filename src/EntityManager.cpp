@@ -53,6 +53,8 @@ void EntityManager::removeDeadEntities(EntityVec& vec)
 		{
 			it = vec.erase(it);
 		}
-		it++;
+
+		if (it != vec.end())
+			it++;
 	}
 }
