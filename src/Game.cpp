@@ -368,7 +368,6 @@ static void entityGUI(std::shared_ptr<Entity> e)
 
 void Game::sGUI()
 {
-	ImGui::ShowDemoWindow();
 	ImGui::Begin("Geometry Wars");
 	ImGui::SetWindowFontScale(2.0f);
 
