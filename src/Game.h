@@ -10,6 +10,7 @@
 struct PlayerConfig { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V; float S; };
 struct EnemyConfig { int SR, CR, OR, OG, OB, OT, VMIN, VMAX, L, SI, SMIN, SMAX; };
 struct BulletConfig { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V, L; float S; };
+struct ActiveSystems { bool movement = true, lifespan = true, collision = true, enelySpawner = true, input = true; };
 
 class Game
 {
@@ -28,6 +29,7 @@ class Game
 	bool					m_Running = true;
 	bool					m_Paused = false;
 	std::shared_ptr<Entity>	m_Player;
+	ActiveSystems			m_ActiveSystems;
 
 public:
 	Game(const std::string& config);

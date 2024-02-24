@@ -23,11 +23,21 @@ void Game::run()
 		// required update call to imgui
 		ImGui::SFML::Update(m_Window, m_DeltaClock.restart());
 
-		sUserInput();
-		sLifespan();
-		sEnemySpawner();
-		sMovement();
-		sCollision();
+		if (!m_Paused)
+		{
+			if (m_ActiveSystems.lifespan)
+				sLifespan();
+			if (m_ActiveSystems.enelySpawner)
+				sEnemySpawner();
+			if (m_ActiveSystems.movement)
+				sMovement();
+			if (m_ActiveSystems.collision)
+				sCollision();
+		}
+
+		if (m_ActiveSystems.input)
+			sUserInput();
+		
 		sGUI();
 		sRender();
 
@@ -336,19 +346,76 @@ void Game::sCollision()
 
 void Game::sEnemySpawner()
 {
-	// TODO: code whichi implements enemy spawning should go here
 	int time = m_CurrentFrame - m_lastEnemySpawnTime;
 	if (time > m_EnemyConfig.SI)
 		spawnEnemy();
 }
 
+static void entityGUI(std::shared_ptr<Entity> e)
+{
+	std::stringstream ss;
+	ss << "D##" << e->id();
+	if (ImGui::Button(ss.str().c_str())) {
+		e->destroy();
+	}
+	ImGui::SameLine();
+	ImGui::Text("%i", e->id());
+	ImGui::SameLine();
+	ImGui::Text(e->tag().c_str());
+	ImGui::SameLine();
+	ImGui::Text("(%f,%f)", e->cTransform->pos.x, e->cTransform->pos.y);
+}
+
 void Game::sGUI()
 {
-	//ImGui::ShowDemoWindow();
+	ImGui::ShowDemoWindow();
 	ImGui::Begin("Geometry Wars");
+	ImGui::SetWindowFontScale(2.0f);
 
-	ImGui::Text("Stuff goes here!");
+	if (ImGui::BeginTabBar("Tabs", 0))
+	{
+		if (ImGui::BeginTabItem("Systems"))
+		{
+			ImGui::Checkbox("Movement", &m_ActiveSystems.movement);
+			ImGui::Checkbox("Lifespan", &m_ActiveSystems.lifespan);
+			ImGui::Checkbox("Collision", &m_ActiveSystems.collision);
+			ImGui::Checkbox("Spawner", &m_ActiveSystems.enelySpawner);
+			ImGui::SameLine();
+			if (ImGui::Button("Spawn"))
+				spawnEnemy();
+			ImGui::Checkbox("Input", &m_ActiveSystems.input);
+			ImGui::EndTabItem();
+		}
 
+		if (ImGui::BeginTabItem("Entities"))
+		{
+			if (ImGui::CollapsingHeader("All entities", ImGuiTreeNodeFlags_NoTreePushOnOpen))
+			{
+				for (auto e : m_Entities.getEntities())
+				{
+					entityGUI(e);
+				}
+			}
+
+			if (ImGui::CollapsingHeader("By tag"))
+			{
+				for (auto& [tag, entityVec] : m_Entities.getEntityMap())
+				{
+					if (ImGui::CollapsingHeader(tag.c_str()))
+					{
+						for (auto e : entityVec)
+						{
+							entityGUI(e);
+						}
+					}
+				}
+			}
+
+			ImGui::EndTabItem();
+		}
+
+		ImGui::EndTabBar();
+	}
 	ImGui::End();
 }
 
@@ -375,11 +442,6 @@ void Game::sRender()
 
 void Game::sUserInput()
 {
-	// TODO: handle user input here
-	//		note that you should only be setting the player's input component variables here
-	//		you should not implement the player's movement logic here
-	//		the movement system will read the variables you set in this function
-
 	sf::Event event;
 	while (m_Window.pollEvent(event))
 	{
@@ -389,8 +451,6 @@ void Game::sUserInput()
 
 		if (event.type == sf::Event::KeyPressed)
 		{
-			//std::cout << "Key pressed with code = " << event.key.code << std::endl;
-
 			switch (event.key.code)
 			{
 			case sf::Keyboard::Escape:
@@ -406,18 +466,21 @@ void Game::sUserInput()
 
 		if (event.type == sf::Event::MouseButtonPressed)
 		{
-			// this line ignores mouse events if ImGui is the thing being clicked
+			// ignores mouse events if ImGui is the thing being clicked
 			if (ImGui::GetIO().WantCaptureMouse) { continue; }
 
-			if (event.mouseButton.button == sf::Mouse::Left)
+			if (!m_Paused)
 			{
-				spawnBullet(m_Player, Vec2(event.mouseButton.x, event.mouseButton.y));
-			}
+				if (event.mouseButton.button == sf::Mouse::Left)
+				{
+					spawnBullet(m_Player, Vec2(event.mouseButton.x, event.mouseButton.y));
+				}
 
-			if (event.mouseButton.button == sf::Mouse::Right)
-			{
-				std::cout << "Right Mouse Button Clicked at (" << event.mouseButton.x << "," << event.mouseButton.y << ")" << std::endl;
-				// call spawnSpecialWeapon here
+				if (event.mouseButton.button == sf::Mouse::Right)
+				{
+					std::cout << "Right Mouse Button Clicked at (" << event.mouseButton.x << "," << event.mouseButton.y << ")" << std::endl;
+					spawnSpecialWeapon(m_Player);
+				}
 			}
 		}
 	}
