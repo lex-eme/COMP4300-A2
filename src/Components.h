@@ -58,7 +58,15 @@ struct CInput
 	bool left	= false;
 	bool right	= false;
 	bool down	= false;
-	bool shoot	= false;
 
 	CInput() {}
+};
+
+struct CSpecial
+{
+	Vec2 target;
+	float strength;
+
+	CSpecial(const Vec2& tar, float s)
+		: target(tar), strength(s) {}
 };

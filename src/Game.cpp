@@ -11,16 +11,9 @@ Game::Game(const std::string& config)
 
 void Game::run()
 {
-	// TODO: add pause functionality in here
-	//		some systems should function while paused (rendering)
-	//		some systems shouldn't (movement / input)
-
 	while (m_Running)
 	{
-		// update the entity manager
 		m_Entities.update();
-
-		// required update call to imgui
 		ImGui::SFML::Update(m_Window, m_DeltaClock.restart());
 
 		if (!m_Paused)
@@ -41,9 +34,8 @@ void Game::run()
 		sGUI();
 		sRender();
 
-		// increment the current frame
-		// may need to be moved when pause implemented
-		m_CurrentFrame += 1;
+		if (!m_Paused)
+			m_CurrentFrame += 1;
 	}
 
 	ImGui::SFML::Shutdown();
@@ -186,9 +178,14 @@ void Game::spawnBullet(std::shared_ptr<Entity> entity, const Vec2& target)
 	e->cLifeSpan = std::make_shared<CLifeSpan>(m_BulletConfig.L);
 }
 
-void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity)
+void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity, const Vec2& target)
 {
-	// TODO: implement your own special weapon
+	auto e = m_Entities.addEntity("special");
+	e->cTransform = std::make_shared<CTransform>(entity->cTransform->pos, Vec2(0, 0), 0.0f);
+	e->cShape = std::make_shared<CShape>(40.0f, 32, sf::Color(255, 255, 255), sf::Color(255, 255, 255), 1.0f);
+	e->cCollision = std::make_shared<CCollision>(40.0f);
+	e->cLifeSpan = std::make_shared<CLifeSpan>(120);
+	e->cSpecial = std::make_shared<CSpecial>(target, 2.0f);
 }
 
 void Game::sMovement()
@@ -201,6 +198,34 @@ void Game::sMovement()
 	if (input.left)		playerVel += Vec2(-1, 0);
 	playerVel.setMag(m_PlayerConfig.S);
 	m_Player->cTransform->velocity = playerVel;
+
+	for (auto special : m_Entities.getEntities("special"))
+	{
+		Vec2 vel = special->cSpecial->target - special->cTransform->pos;
+		vel *= 0.1f;
+		special->cTransform->velocity = vel;
+		for (auto enemy : m_Entities.getEntities("enemy"))
+		{
+			float dist = special->cTransform->pos.dist(enemy->cTransform->pos);
+			if (dist < 200.0f)
+			{
+				Vec2 diff = special->cTransform->pos - enemy->cTransform->pos;
+				diff *= 0.005f;
+				enemy->cTransform->velocity += diff;
+			}
+		}
+
+		for (auto enemy : m_Entities.getEntities("small enemy"))
+		{
+			float dist = special->cTransform->pos.dist(enemy->cTransform->pos);
+			if (dist < 200.0f)
+			{
+				Vec2 diff = special->cTransform->pos - enemy->cTransform->pos;
+				diff *= 0.005f;
+				enemy->cTransform->velocity += diff;
+			}
+		}
+	}
 
 	for (auto e : m_Entities.getEntities())
 	{
@@ -271,8 +296,8 @@ void Game::entitiesCheckBounds(const std::string& tag)
 
 static bool collides(const Vec2& a, const Vec2& b, float len)
 {
-	float dist = a.dist(b);
-	return dist < len;
+	float dist = a.distSqr(b);
+	return dist < (len * len);
 }
 
 void Game::deleteEnemy(std::shared_ptr<Entity> e)
@@ -321,6 +346,15 @@ void Game::sCollision()
 				bullet->destroy();
 			}
 		}
+
+		for (auto special : m_Entities.getEntities("special"))
+		{
+			if (collides(e->cTransform->pos, special->cTransform->pos, e->cCollision->radius + special->cCollision->radius))
+			{
+				spawnSmallEnemies(e);
+				deleteEnemy(e);
+			}
+		}
 	}
 
 	for (auto e : m_Entities.getEntities("small enemy"))
@@ -339,6 +373,14 @@ void Game::sCollision()
 			{
 				deleteEnemy(e);
 				bullet->destroy();
+			}
+		}
+
+		for (auto special : m_Entities.getEntities("special"))
+		{
+			if (collides(e->cTransform->pos, special->cTransform->pos, e->cCollision->radius + special->cCollision->radius))
+			{
+				deleteEnemy(e);
 			}
 		}
 	}
@@ -477,8 +519,7 @@ void Game::sUserInput()
 
 				if (event.mouseButton.button == sf::Mouse::Right)
 				{
-					std::cout << "Right Mouse Button Clicked at (" << event.mouseButton.x << "," << event.mouseButton.y << ")" << std::endl;
-					spawnSpecialWeapon(m_Player);
+					spawnSpecialWeapon(m_Player, Vec2(event.mouseButton.x, event.mouseButton.y));
 				}
 			}
 		}

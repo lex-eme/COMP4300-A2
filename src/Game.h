@@ -42,7 +42,7 @@ private:
 	void spawnEnemy();
 	void spawnSmallEnemies(std::shared_ptr<Entity> e);
 	void spawnBullet(std::shared_ptr<Entity> entity, const Vec2& target);
-	void spawnSpecialWeapon(std::shared_ptr<Entity> entity);
+	void spawnSpecialWeapon(std::shared_ptr<Entity> entity, const Vec2& target);
 
 	void sMovement();
 	void sLifespan();

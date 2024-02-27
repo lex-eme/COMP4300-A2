@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-#define PI 3.14159265
+constexpr auto PI = 3.14159265;
 
 Vec2::Vec2() {}
 
@@ -77,6 +77,13 @@ float Vec2::dist(const Vec2& rhs) const
 	return sqrtf(dx * dx + dy * dy);
 }
 
+float Vec2::distSqr(const Vec2& rhs) const
+{
+	float dx = rhs.x - x;
+	float dy = rhs.y - y;
+	return dx * dx + dy * dy;
+}
+
 float Vec2::mag() const
 {
 	return sqrt(x * x + y * y);
@@ -105,6 +112,12 @@ Vec2& Vec2::rotate(float theta)
 	float angle = theta * PI / 180.0f;
 	x = x * cos(angle) - y * sin(angle);
 	y = t * sin(angle) + y * cos(angle);
+	return *this;
+}
+
+Vec2& Vec2::lerp(Vec2& other, float amount)
+{
+	*this = *this + (other - *this) * amount;
 	return *this;
 }
 
